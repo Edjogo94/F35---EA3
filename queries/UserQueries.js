@@ -9,7 +9,16 @@ async function createUser(nombre, email, password, rol) {
 	try {
 		// Verificar si ya existe un usuario con el mismo correo electrónico
 		const checkUserQuery = "SELECT * FROM Usuario WHERE email = ?";
-		const [existingUser] = await connection.query(checkUserQuery, [email]);
+
+		const existingUser = await new Promise((resolve, reject) => {
+			connection.query(checkUserQuery, [email], (err, user) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(user);
+				}
+			});
+		});
 
 		if (existingUser && existingUser.length > 0) {
 			return {
@@ -26,21 +35,21 @@ async function createUser(nombre, email, password, rol) {
 		const insertParams = [nombre, email, hashedPassword, rol, "Activo"];
 
 		// Ejecutar la consulta de inserción del usuario
-		connection.query(insertQuery, insertParams, (err) => {
-			if (err) {
-				console.error("Error al crear un usuario:", err);
-			} else {
-				console.log("Usuario creado exitosamente");
-			}
+		await new Promise((resolve, reject) => {
+			connection.query(insertQuery, insertParams, (err) => {
+				if (err) {
+					console.error("Error al crear un usuario:", err);
+					reject();
+				} else {
+					console.log("Usuario creado exitosamente");
+					resolve();
+				}
+			});
 		});
-
 		// Generar un token JWT después de crear el usuario
 		const token = jwt.sign({ email, rol }, process.env.JWT_SECRET, {
 			expiresIn: "1h",
 		});
-
-		// Cerrar la conexión después de realizar la consulta
-		connection.end();
 
 		return { message: "Usuario creado exitosamente", token };
 	} catch (error) {
@@ -53,7 +62,15 @@ async function authenticateUserByEmailAndPassword(email, password) {
 	try {
 		// Obtener el usuario por email de la base de datos
 		const userQuery = "SELECT * FROM Usuario WHERE email = ?";
-		const [user] = await connection.query(userQuery, [email]);
+		const user = await new Promise((resolve, reject) => {
+			connection.query(userQuery, [email], (err, user) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(user);
+				}
+			});
+		});
 
 		if (!user || user.length === 0) {
 			return null; // Usuario no encontrado
@@ -85,7 +102,15 @@ async function authenticateUserByEmailAndPassword(email, password) {
 async function getUserById(userId) {
 	try {
 		const userQuery = "SELECT * FROM Usuario WHERE id = ?";
-		const [user] = await connection.query(userQuery, [userId]);
+		const user = await new Promise((resolve, reject) => {
+			connection.query(userQuery, [userId], (err, user) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(user);
+				}
+			});
+		});
 
 		if (!user || user.length === 0) {
 			return null; // Usuario no encontrado
@@ -171,7 +196,16 @@ async function deleteUserById(userId) {
 async function getAllUsers() {
 	try {
 		const getAllUsersQuery = "SELECT * FROM Usuario";
-		const [users] = await connection.query(getAllUsersQuery);
+		const users = await new Promise((resolve, reject) => {
+			connection.query(getAllUsersQuery, (err, users) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(users);
+				}
+			});
+		});
+
 		return users;
 	} catch (error) {
 		throw error;

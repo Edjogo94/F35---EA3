@@ -36,7 +36,7 @@ UserController.post("/create", validateUserAttributes, async (req, res) => {
 		const result = await createUser(nombre, email, password, rol);
 		res.status(201).json(result);
 	} catch (error) {
-		console.error("Error en la ruta /create:", error);
+		console.error("Error en la ruta /create:", error.message);
 		res.status(500).json({ error: "Error interno del servidor" });
 	}
 });
@@ -66,13 +66,13 @@ UserController.post(
 				res.status(401).json({ error: "Credenciales inválidas" });
 			}
 		} catch (error) {
-			console.error("Error en la ruta /authenticate:", error);
+			console.error("Error en la ruta /authenticate:", error.message);
 			res.status(500).json({ error: "Error interno del servidor" });
 		}
 	}
 );
 
-UserController.get("/:userId", authenticateUser, async (req, res) => {
+UserController.get("/get/:userId", authenticateUser, async (req, res) => {
 	if (req.user.rol === "administrador") {
 		try {
 			const userId = req.params.userId;
@@ -92,7 +92,7 @@ UserController.get("/:userId", authenticateUser, async (req, res) => {
 	}
 });
 
-UserController.put("/:userId", authenticateUser, async (req, res) => {
+UserController.put("/update/:userId", authenticateUser, async (req, res) => {
 	if (req.user.rol === "administrador") {
 		try {
 			const userId = req.params.userId;
@@ -108,7 +108,7 @@ UserController.put("/:userId", authenticateUser, async (req, res) => {
 	}
 });
 
-UserController.delete("/:userId", authenticateUser, async (req, res) => {
+UserController.delete("/delete/:userId", authenticateUser, async (req, res) => {
 	if (req.user.rol === "administrador") {
 		try {
 			const userId = req.params.userId;
