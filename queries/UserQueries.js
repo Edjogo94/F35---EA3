@@ -12,9 +12,11 @@ async function createUser(nombre, email, password, rol) {
 		const [existingUser] = await connection.query(checkUserQuery, [email]);
 
 		if (existingUser && existingUser.length > 0) {
-			return { error: "Ya existe un usuario con este correo electrónico" };
+			return {
+				error: "Ya existe un usuario con este correo electrónico",
+			};
 		}
-		
+
 		// Encriptar la contraseña antes de almacenarla en la base de datos
 		const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -80,7 +82,106 @@ async function authenticateUserByEmailAndPassword(email, password) {
 	}
 }
 
+async function getUserById(userId) {
+	try {
+		const userQuery = "SELECT * FROM Usuario WHERE id = ?";
+		const [user] = await connection.query(userQuery, [userId]);
+
+		if (!user || user.length === 0) {
+			return null; // Usuario no encontrado
+		}
+
+		return user[0];
+	} catch (error) {
+		throw error;
+	}
+}
+
+async function updateUserById(userId, updatedUserData) {
+	try {
+		// Obtener el usuario actual para comparar el correo electrónico
+		const currentUser = await getUserById(userId);
+
+		if (!currentUser) {
+			return { error: "Usuario no encontrado" };
+		}
+
+		// Verificar si el correo electrónico ha cambiado
+		if (updatedUserData.email !== currentUser.email) {
+			const checkUserQuery = "SELECT * FROM Usuario WHERE email = ?";
+			const [existingUser] = await connection.query(checkUserQuery, [
+				updatedUserData.email,
+			]);
+
+			if (existingUser && existingUser.length > 0) {
+				return {
+					error: "Ya existe un usuario con este correo electrónico",
+				};
+			}
+		}
+
+		// Encriptar la contraseña si ha cambiado
+		let hashedPassword = currentUser.password; // Utilizar la contraseña actual por defecto
+
+		if (
+			updatedUserData.password &&
+			updatedUserData.password !== currentUser.password
+		) {
+			hashedPassword = await bcrypt.hash(updatedUserData.password, 10);
+		}
+
+		// Actualizar el usuario en la base de datos
+		const updateQuery =
+			"UPDATE Usuario SET nombre = ?, email = ?, password = ?, rol = ?, estado = ? WHERE id = ?";
+		const updateParams = [
+			updatedUserData.nombre,
+			updatedUserData.email,
+			hashedPassword,
+			updatedUserData.rol,
+			updatedUserData.estado,
+			userId,
+		];
+
+		await connection.query(updateQuery, updateParams);
+
+		// Obtener el usuario actualizado
+		const updatedUser = await getUserById(userId);
+
+		return {
+			message: "Usuario actualizado exitosamente",
+			user: updatedUser,
+		};
+	} catch (error) {
+		throw error;
+	}
+}
+
+async function deleteUserById(userId) {
+	try {
+		// Eliminar el usuario de la base de datos
+		const deleteQuery = "DELETE FROM Usuario WHERE id = ?";
+		await connection.query(deleteQuery, [userId]);
+
+		return { message: "Usuario eliminado exitosamente" };
+	} catch (error) {
+		throw error;
+	}
+}
+
+async function getAllUsers() {
+	try {
+		const getAllUsersQuery = "SELECT * FROM Usuario";
+		const [users] = await connection.query(getAllUsersQuery);
+		return users;
+	} catch (error) {
+		throw error;
+	}
+}
 module.exports = {
 	createUser,
 	authenticateUserByEmailAndPassword,
+	getUserById,
+	updateUserById,
+	deleteUserById,
+	getAllUsers,
 };
